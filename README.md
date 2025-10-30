@@ -1,4 +1,4 @@
-# / Flutter Admin Demo
+# Flutter + Firebase Admin Demo User Manager
 
 A new Flutter project.
 
