@@ -1,4 +1,4 @@
-# choifood
+# / Flutter Admin Demo
 
 A new Flutter project.
 
