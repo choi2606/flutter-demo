@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart'; // ✅ thêm dòng này
 import '../models/user_model.dart';
 import '../services/rtdb_service.dart';
 import '../services/cloudinary_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 
 class AddUserScreen extends StatefulWidget {
   @override
@@ -17,10 +18,18 @@ class _AddUserScreenState extends State<AddUserScreen> {
   String _username = '', _email = '', _password = '';
   String? _imagePath;
   final picker = ImagePicker();
+  Uint8List? _webImage;
 
   Future<void> _pickImage() async {
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => _imagePath = picked.path);
+    if (picked != null) {
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        setState(() => _webImage = bytes);
+      } else {
+        setState(() => _imagePath = picked.path);
+      }
+    }
   }
 
   /// ✅ Hàm mã hóa password bằng SHA-256
@@ -45,9 +54,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
       );
 
       String? imageUrl;
-      if (_imagePath != null) {
+      if (kIsWeb && _webImage != null) {
+        imageUrl = await CloudinaryService().uploadBytes(_webImage!);
+      } else if (_imagePath != null) {
         imageUrl = await CloudinaryService().uploadImage(_imagePath!);
       }
+
       await RTDBService().addUser(newUser, imageUrl);
 
       Navigator.pop(context);
@@ -80,9 +92,11 @@ class _AddUserScreenState extends State<AddUserScreen> {
               onSaved: (v) => _password = v!,
             ),
             SizedBox(height: 16),
-            _imagePath != null
+            _webImage != null
+                ? Image.memory(_webImage!, height: 120)
+                : _imagePath != null
                 ? Image.file(File(_imagePath!), height: 120)
-                : Text("Chưa chọn ảnh"),
+                : const Text("Chưa chọn ảnh"),
             ElevatedButton(onPressed: _pickImage, child: Text("Chọn ảnh")),
             SizedBox(height: 20),
             ElevatedButton(onPressed: _save, child: Text("Lưu")),

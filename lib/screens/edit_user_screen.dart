@@ -6,6 +6,9 @@ import 'package:crypto/crypto.dart';
 import '../models/user_model.dart';
 import '../services/rtdb_service.dart';
 import '../services/cloudinary_service.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 
 class EditUserScreen extends StatefulWidget {
   final UserModel user;
@@ -21,6 +24,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
   String? _imagePath;
+  Uint8List? _webImage;
   final picker = ImagePicker();
 
   @override
@@ -43,7 +47,19 @@ class _EditUserScreenState extends State<EditUserScreen> {
 
   Future<void> _pickImage() async {
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => _imagePath = picked.path);
+    if (picked != null) {
+      if (kIsWeb) {
+        // Web: đọc bytes
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _webImage = bytes;
+          _imagePath = picked.name; // chỉ để debug tên ảnh
+        });
+      } else {
+        // Mobile: đọc từ path
+        setState(() => _imagePath = picked.path);
+      }
+    }
   }
 
   String hashPassword(String password) {
@@ -62,23 +78,26 @@ class _EditUserScreenState extends State<EditUserScreen> {
       password.isNotEmpty ? hashPassword(password) : widget.user.password;
 
       final updatedUser = UserModel(
-        id: widget.user.id, // id can sua
+        id: widget.user.id,
         username: username,
         email: email,
-        imageUrl: widget.user.imageUrl, // tạm giữ, có thể thay nếu ảnh mới
         password: hashedPassword,
+        imageUrl: widget.user.imageUrl,
       );
 
-      String? newImageUrl = _imagePath;
-      if (_imagePath != null && _imagePath!.startsWith('/data/')) {
+      String? newImageUrl = widget.user.imageUrl;
+
+      if (kIsWeb && _webImage != null) {
+        newImageUrl = await CloudinaryService().uploadBytes(_webImage!);
+      } else if (!kIsWeb && _imagePath != null && _imagePath!.startsWith('/data/')) {
         newImageUrl = await CloudinaryService().uploadImage(_imagePath!);
       }
 
       await RTDBService().updateUser(updatedUser, newImageUrl);
-
       Navigator.pop(context);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -105,11 +124,14 @@ class _EditUserScreenState extends State<EditUserScreen> {
               obscureText: true,
             ),
             SizedBox(height: 16),
-            _imagePath != null
-                ? _imagePath!.startsWith('/data/')
-                ? Image.file(File(_imagePath!), height: 120)
-                : Image.network(_imagePath!, height: 120)
-                : Text("Chưa có ảnh"),
+            if (_webImage != null)
+              Image.memory(_webImage!, height: 120)
+            else if (_imagePath != null && !_imagePath!.startsWith('/data/'))
+              Image.network(_imagePath!, height: 120)
+            else if (_imagePath != null && _imagePath!.startsWith('/data/'))
+                Image.file(File(_imagePath!), height: 120)
+              else
+                const Text("Chưa có ảnh"),
             ElevatedButton(onPressed: _pickImage, child: Text("Chọn ảnh mới")),
             SizedBox(height: 20),
             ElevatedButton(onPressed: _save, child: Text("Lưu thay đổi")),

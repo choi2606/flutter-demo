@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import 'add_user_screen.dart';
 import 'edit_user_screen.dart';
 import 'login_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -135,8 +136,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 8, horizontal: 16),
                         leading: CircleAvatar(
                           radius: 25,
-                          backgroundImage: user.imageUrl != null && user.imageUrl!.startsWith('http')
+                          backgroundImage: user.imageUrl != null
+                              ? (user.imageUrl!.startsWith('http')
                               ? NetworkImage(user.imageUrl!)
+                              : FileImage(File(user.imageUrl!)) as ImageProvider)
                               : const AssetImage("assets/avatar.png"),
                         ),
                         title: Text(
