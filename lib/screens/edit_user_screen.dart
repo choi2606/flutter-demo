@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:crypto/crypto.dart';
 import '../models/user_model.dart';
 import '../services/rtdb_service.dart';
+import '../services/cloudinary_service.dart';
 
 class EditUserScreen extends StatefulWidget {
   final UserModel user;
@@ -68,7 +69,13 @@ class _EditUserScreenState extends State<EditUserScreen> {
         password: hashedPassword,
       );
 
-      await RTDBService().updateUser(updatedUser, _imagePath);
+      String? newImageUrl = _imagePath;
+      if (_imagePath != null && _imagePath!.startsWith('/data/')) {
+        newImageUrl = await CloudinaryService().uploadImage(_imagePath!);
+      }
+
+      await RTDBService().updateUser(updatedUser, newImageUrl);
+
       Navigator.pop(context);
     }
   }

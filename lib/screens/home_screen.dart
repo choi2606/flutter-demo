@@ -135,10 +135,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 8, horizontal: 16),
                         leading: CircleAvatar(
                           radius: 25,
-                          backgroundImage: user.imageUrl != null
-                              ? FileImage(File(user.imageUrl!))
-                              : const AssetImage("assets/avatar.png")
-                          as ImageProvider,
+                          backgroundImage: user.imageUrl != null && user.imageUrl!.startsWith('http')
+                              ? NetworkImage(user.imageUrl!)
+                              : const AssetImage("assets/avatar.png"),
                         ),
                         title: Text(
                           "Username: ${user.username}",

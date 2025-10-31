@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:crypto/crypto.dart'; // ✅ thêm dòng này
 import '../models/user_model.dart';
 import '../services/rtdb_service.dart';
+import '../services/cloudinary_service.dart';
 
 class AddUserScreen extends StatefulWidget {
   @override
@@ -43,7 +44,12 @@ class _AddUserScreenState extends State<AddUserScreen> {
         password: hashedPassword, // ✅ lưu hash, không lưu password thô
       );
 
-      await RTDBService().addUser(newUser, _imagePath);
+      String? imageUrl;
+      if (_imagePath != null) {
+        imageUrl = await CloudinaryService().uploadImage(_imagePath!);
+      }
+      await RTDBService().addUser(newUser, imageUrl);
+
       Navigator.pop(context);
     }
   }
